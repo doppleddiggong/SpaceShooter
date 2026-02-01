@@ -78,9 +78,9 @@ void AEnemyActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// 발사 중이면 이동하지 않음
 	if (!bIsFiring)
 	{
+		// 발사 중이 아닐때 이동/발사 시도
 		SetActorLocation(GetActorLocation() + MoveDirection * Speed * DeltaTime);
 		TryStartFiring();
 	}
@@ -88,7 +88,10 @@ void AEnemyActor::Tick(float DeltaTime)
 
 void AEnemyActor::TryStartFiring()
 {
-	// bHasFired / bIsFiring 가드 제거: 중복 타이머 누적 가능
+	if (bHasFired)
+	{
+		return;
+	}
 
 	APawn* PlayerPawn = GetWorld() ? GetWorld()->GetFirstPlayerController()->GetPawn() : nullptr;
 	if (!PlayerPawn)
@@ -119,7 +122,7 @@ void AEnemyActor::TryStartFiring()
 	// 발사 시작
 	bIsFiring = true;
 	TargetBurstCount = FMath::RandRange(MinBurstCount, MaxBurstCount);
-	CurrentBurstCount = TargetBurstCount;
+	CurrentBurstCount = 0;
 
 	// 플레이어 방향으로 회전
 	FRotator NewRotation = UKismetMathLibrary::MakeRotFromXZ(FireDirection, GetActorUpVector());

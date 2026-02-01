@@ -74,12 +74,12 @@ void APlayerPawn::BeginPlay()
 		InputSubsystem->AddMappingContext(IMC_Player, 0);
 	}
 
+	CurHP = MaxHP;
+
 	if (AShootingGameMode* GameMode = Cast<AShootingGameMode>(GetWorld()->GetAuthGameMode()))
 	{
 		GameMode->UpdatePlayerHP(CurHP);
 	}
-
-	CurHP = MaxHP;
 
 	UMaterialInterface* BaseMaterial = MeshComp->GetMaterial(0);
 	if (BaseMaterial)
@@ -215,23 +215,19 @@ void APlayerPawn::StartInvincibility()
 		DynamicMaterial->SetScalarParameterValue(TEXT("HitIntensity"), 1.f);
 	}
 
-	// Lambda 캡처 대신 UObject 바인딩을 사용해 수명/호출 안정성을 확보합니다.
-	GetWorldTimerManager().SetTimer(
-		BlinkTimerHandle,
-		this,
-		&APlayerPawn::BlinkMesh,
-		BlinkInterval,
-		true
-	);
+	FTimerDelegate BlinkDelegate;
+	BlinkDelegate.BindLambda([this]()
+	{
+		BlinkMesh();
+	});
+	GetWorldTimerManager().SetTimer(BlinkTimerHandle, BlinkDelegate, BlinkInterval, true);
 
-	GetWorldTimerManager().SetTimer(
-		InvincibilityTimerHandle,
-		this,
-		&APlayerPawn::EndInvincibility,
-		InvincibilityDuration,
-		false
-	);
-
+	FTimerDelegate InvincibilityDelegate;
+	InvincibilityDelegate.BindLambda([this]()
+	{
+		EndInvincibility();
+	});
+	GetWorldTimerManager().SetTimer(InvincibilityTimerHandle, InvincibilityDelegate, InvincibilityDuration, false);
 }
 
 void APlayerPawn::EndInvincibility()
