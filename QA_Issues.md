@@ -177,3 +177,65 @@ N/A
 
 **상태**: 해결 완료 (2026.01.29)
 **검증 방법**: ActorTracking.log로 BP_EnemyBullet_C 개수 안정화 확인 (12~21 범위 유지)
+
+---
+
+## 이슈 #5: SpawnFrequency 비정상 설정으로 성능 저하
+
+**우선순위**: High (P1)
+
+**발견 일시**: 2026.01.30
+
+**재현 조건**:
+
+1. BP_EnemyManager의 SpawnFrequency가 0.0001로 설정됨
+2. 게임 시작 직후 FPS 급격히 하락
+
+**예상 동작**:
+
+- SpawnFrequency 정상 범위(0.1~5.0)에서 동작
+- 안정적인 FPS 유지
+
+**실제 동작**:
+
+- SpawnFrequency 0.0001 → 초당 10,000회 스폰 시도
+- FPS 10.6으로 급락, 게임 버벅임
+
+**관련 클래스**:
+
+- EnemyManagerActor.cpp:65
+- SS_EnemyManager_SpawnEnemy (프레임당 18.74회)
+- SS_Enemy_TickMove (프레임당 25.38회)
+
+**로그 확인 항목**:
+
+- [x]  TimerStats.csv 분석
+- [x]  SS_ 추적 이벤트 확인
+- [x]  프레임 타임 측정
+
+**실제 로그**:
+
+```
+수정 전: FPS 10.6 (94.3ms)
+수정 후: FPS 88.5 (11.3ms)
+
+```
+
+**참조 자료**:
+
+- Unreal Insights 트레이스
+- TimerStats.csv
+
+**추가 정보**:
+
+- 재현 빈도: 항상
+- 영향 범위: 게임플레이 전체 (심각한 성능 저하)
+
+**해결 방법**:
+
+1. UPROPERTY meta ClampMin="0.1" 추가 (에디터 방어)
+2. BeginPlay에서 런타임 검증 + 경고 로그 (런타임 방어)
+3. MaxActiveEnemies 상한선 설정 (최악 방어)
+
+**상태**: 해결 완료 (2026.01.30)
+**검증 방법**: 게임 플레이로 FPS 88.5 확인, ClampMin 작동 검증

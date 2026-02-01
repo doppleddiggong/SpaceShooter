@@ -19,8 +19,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	// Runtime
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Spawn", meta=(ClampMin="0.1", UIMin="0.1", UIMax="5.0"))
 	float SpawnFrequency = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category="Spawn", meta=(ClampMin="1", UIMin="1", UIMax="200"))
+	int32 MaxActiveEnemies = 50;
 	
 protected:
 	// Lifecycle
