@@ -1,0 +1,54 @@
+name: Issue Report to Slack
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Documents/Report/issue_report_*.md
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find committed issue reports
+        id: reports
+        run: |
+          files=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -E '^Documents/Report/issue_report_.*\.md$' || true)
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$files" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Send to Slack
+        if: steps.reports.outputs.files != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REPORT_FILES: ${{ steps.reports.outputs.files }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          webhook = os.environ.get("SLACK_WEBHOOK_URL")
+          if not webhook:
+              raise SystemExit("SLACK_WEBHOOK_URL is not set")
+
+          files = [line for line in os.environ.get("REPORT_FILES", "").splitlines() if line.strip()]
+          for path in files:
+              with open(path, "r", encoding="utf-8") as f:
+                  content = f.read()
+              payload = {"text": f"```{content}```"}
+              data = json.dumps(payload).encode("utf-8")
+              req = urllib.request.Request(webhook, data=data, headers={"Content-Type": "application/json"})
+              with urllib.request.urlopen(req) as resp:
+                  resp.read()
+          PY
