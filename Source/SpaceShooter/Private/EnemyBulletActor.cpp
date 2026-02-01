@@ -81,6 +81,8 @@ void AEnemyBulletActor::SetActive(bool bActive)
 
 	if (bActive)
 	{
+		GetWorldTimerManager().ClearTimer(LifeTimeTimerHandle);
+		GetWorldTimerManager().SetTimer(LifeTimeTimerHandle, this, &AEnemyBulletActor::OnLifeTimeExpired, LifeTime, false);
 	}
 	else
 	{
@@ -103,4 +105,6 @@ bool AEnemyBulletActor::IsActive() const
 void AEnemyBulletActor::OnLifeTimeExpired()
 {
 	SetActive(false);
+	// 액터 완전 제거
+	Destroy();
 }

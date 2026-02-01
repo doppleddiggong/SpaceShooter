@@ -161,13 +161,19 @@ N/A
 - [ ] OnLifeTimeExpired 호출 여부
 
 **실제 로그**: (재현 시 첨부)
-```
-N/A
-```
+수정 전: BP_EnemyBullet_C: 16 → 31 → 41 → 63 → ... → 174 (계속 증가)
+수정 후: BP_EnemyBullet_C: 12 → 18 → 15 → 20 → ... → 21 (12~21 사이 안정화)
 
 **참조 자료**: (재현 시 첨부)
-- 없음
+- ActorTracking.log
 
 **추가 정보**:
 - 재현 빈도: 항상
-- 영향 범위: 게임플레이
+- 영향 범위: 성능 (객체 누적으로 인한 메모리 증가)
+
+**해결 방법**:
+1. `SetActive(true)` 시점에 LifeTime 타이머 시작
+2. `OnLifeTimeExpired()`에서 `Destroy()` 호출 추가
+
+**상태**: 해결 완료 (2026.01.29)
+**검증 방법**: ActorTracking.log로 BP_EnemyBullet_C 개수 안정화 확인 (12~21 범위 유지)
