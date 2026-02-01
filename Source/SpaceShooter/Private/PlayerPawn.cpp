@@ -102,6 +102,8 @@ void APlayerPawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 
 	GetWorldTimerManager().ClearTimer(FireTimerHandle);
+	GetWorldTimerManager().ClearTimer(InvincibilityTimerHandle);
+	GetWorldTimerManager().ClearTimer(BlinkTimerHandle);
 }
 
 void APlayerPawn::Tick(float DeltaTime)
@@ -213,20 +215,25 @@ void APlayerPawn::StartInvincibility()
 		DynamicMaterial->SetScalarParameterValue(TEXT("HitIntensity"), 1.f);
 	}
 
-	FTimerDelegate BlinkDelegate;
-	BlinkDelegate.BindLambda([this]()
-	{
-		BlinkMesh();
-	});
-	GetWorldTimerManager().SetTimer(BlinkTimerHandle, BlinkDelegate, BlinkInterval, true);
+	// Lambda 캡처 대신 UObject 바인딩을 사용해 수명/호출 안정성을 확보합니다.
+	GetWorldTimerManager().SetTimer(
+		BlinkTimerHandle,
+		this,
+		&APlayerPawn::BlinkMesh,
+		BlinkInterval,
+		true
+	);
 
-	FTimerDelegate InvincibilityDelegate;
-	InvincibilityDelegate.BindLambda([this]()
-	{
-		EndInvincibility();
-	});
-	GetWorldTimerManager().SetTimer(InvincibilityTimerHandle, InvincibilityDelegate, InvincibilityDuration, false);
+	GetWorldTimerManager().SetTimer(
+		InvincibilityTimerHandle,
+		this,
+		&APlayerPawn::EndInvincibility,
+		InvincibilityDuration,
+		false
+	);
+
 }
+
 void APlayerPawn::EndInvincibility()
 {
 	bIsInvincible = false;

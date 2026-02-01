@@ -43,8 +43,11 @@ protected:
 	TSubclassOf<class UGameOverWidget> GameOverWidgetFactory;
 
 	// Runtime - Widget
-	class UMainWidget* MainWidget;
-	class UGameOverWidget* GameOverWidget;
+	UPROPERTY()
+	TObjectPtr<class UMainWidget> MainWidget;
+
+	UPROPERTY()
+	TObjectPtr<class UGameOverWidget> GameOverWidget;
 
 private:
 	// Internal State
