@@ -1,0 +1,74 @@
+name: QA Report to Slack
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "Documents/Report/issue_report_*.md"
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Collect changed issue reports
+        id: collect
+        shell: bash
+        run: |
+          set -euo pipefail
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+
+          if [[ "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
+            CHANGED=$(git diff --name-only --root "$AFTER")
+          else
+            CHANGED=$(git diff --name-only "$BEFORE" "$AFTER")
+          fi
+
+          printf "%s\n" "$CHANGED" | grep -E '^Documents/Report/issue_report_.*\.md$' > changed_files.txt || true
+          if [[ ! -s changed_files.txt ]]; then
+            echo "No matching files."
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "has_files=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build Slack payload
+        if: steps.collect.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import pathlib
+
+          files = [
+              line.strip()
+              for line in pathlib.Path("changed_files.txt").read_text(encoding="utf-8").splitlines()
+              if line.strip()
+          ]
+          parts = []
+          for path in files:
+            content = pathlib.Path(path).read_text(encoding="utf-8")
+            parts.append(content)
+
+          body = "\n\n".join(parts)
+          text = f"```\n{body}\n```"
+          payload = {"text": text}
+          pathlib.Path("payload.json").write_text(json.dumps(payload), encoding="utf-8")
+          PY
+
+      - name: Send to Slack
+        if: steps.collect.outputs.has_files == 'true'
+        shell: bash
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          curl -X POST -H 'Content-type: application/json' --data @payload.json "$SLACK_WEBHOOK_URL"
